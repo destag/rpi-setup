@@ -28,38 +28,9 @@
           - vim
         state: present
 
-    - name: Add Docker GPG key
-      apt_key:
-        url: https://download.docker.com/linux/debian/gpg
-      tags:
-        - docker
-
-    - name: Add Docker APT repository
-      apt_repository:
-        repo: >
-           deb [arch=armhf]
-           https://download.docker.com/linux/debian
-           {{ ansible_distribution_release }} stable
-      tags:
-        - docker
-
-    - name: Install docker
-      apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-          - containerd.io
-        update_cache: yes
-        state: present
-      tags:
-        - docker
-
-    - name: Add user to group docker
-      user:
-        groups:
-          - docker
-        append: yes
-        name: "{{ ansible_user }}"
+    - name: Setup docker
+      include_role:
+        name: docker
       tags:
         - docker
 
