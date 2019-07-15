@@ -1,0 +1,12 @@
+---
+tasks:
+  - name: Allow SSH connections
+    ufw:
+      rule: allow
+      name: OpenSSH
+
+  - name: Deny all other incoming traffic by default
+    ufw:
+      state: enabled
+      policy: deny
+      direction: incoming
