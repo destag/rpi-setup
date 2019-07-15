@@ -34,19 +34,9 @@
       tags:
         - docker
 
-    - name: Create directory for external disk
-      file:
-        path: /media/exfat
-        state: directory
-      tags:
-        - disk
-
     - name: Mount external disk
-      mount:
-        path: /media/exfat
-        src: /dev/sda1
-        fstype: exfat
-        state: mounted
+      include_role:
+        name: disk
       tags:
         - disk
 
