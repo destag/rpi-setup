@@ -42,6 +42,6 @@
 
     - name: Setup prometheus node_exporter
       include_role:
-        name: monitorng
+        name: monitoring
       tags:
         - monitoring
