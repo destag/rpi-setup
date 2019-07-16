@@ -40,50 +40,8 @@
       tags:
         - disk
 
-    - name: Extract node_exporter
-      unarchive:
-        src: https://github.com/prometheus/node_exporter/releases/download/v0.18.1/node_exporter-0.18.1.linux-armv7.tar.gz
-        dest: /home/pi
-        remote_src: yes
-      tags:
-        - monitoring
-
-    - name: Copy node_exporter to sbin
-      copy:
-        src: /home/pi/node_exporter-0.18.1.linux-armv7/node_exporter
-        dest: /usr/sbin/node_exporter
-        remote_src: yes
-        mode: 0755
-      tags:
-        - monitoring
-
-    - name: Make service
-      copy:
-        dest: /etc/systemd/system/node_exporter.service
-        content: |
-          [Unit]
-          Description=Node Exporter
-
-          [Service]
-          EnvironmentFile=/etc/default/node_exporter
-          ExecStart=/usr/sbin/node_exporter $OPTIONS
-
-          [Install]
-          WantedBy=multi-user.target
-      tags:
-        - monitoring
-
-    - name: Create service options
-      copy:
-        dest: /etc/default/node_exporter
-        content: |
-          OPTIONS=""
-      tags:
-        - monitoring
-
-    - name: Start node_exporter service
-      service:
-        name: node_exporter
-        state: started
+    - name: Setup prometheus node_exporter
+      include_role:
+        name: monitorng
       tags:
         - monitoring
