@@ -1,0 +1,12 @@
+---
+- name: Create directory for external disk
+  file:
+    path: /mmt/exfat
+    state: directory
+
+- name: Mount external disk
+  mount:
+    path: /mnt/exfat
+    src: /dev/sda1
+    fstype: exfat
+    state: mounted
