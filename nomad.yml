@@ -1,0 +1,69 @@
+---
+- hosts: all
+  remote_user: pi
+  become: yes
+  tasks:
+    - name: Extract nomad
+      unarchive:
+        src: https://releases.hashicorp.com/nomad/0.9.4/nomad_0.9.4_linux_arm.zip
+        dest: /home/pi
+        remote_src: yes
+
+    - name: Move nomad binary
+      copy:
+        src: /home/pi/nomad
+        dest: /usr/sbin/nomad
+        remote_src: yes
+        mode: 0755
+
+    - name: Make service
+      copy:
+        dest: /etc/systemd/system/nomad.service
+        content: |
+          [Unit]
+          Description=Nomad
+          Documentation=https://nomadproject.io/docs/
+          Wants=network-online.target
+          After=network-online.target
+
+          [Service]
+          ExecReload=/bin/kill -HUP $MAINPID
+          ExecStart=/usr/sbin/nomad agent -config /etc/nomad.hcl
+          KillMode=process
+          KillSignal=SIGINT
+          LimitNOFILE=65536
+          LimitNPROC=infinity
+          Restart=on-failure
+          RestartSec=2
+          StartLimitBurst=3
+          StartLimitInterval=10
+          TasksMax=infinity
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Create nomad config
+      copy:
+        dest: /etc/nomad.hcl
+        content: |
+          data_dir = "/var/lib/nomad"
+
+          bind_addr = "0.0.0.0"
+
+          server {
+            enabled          = true
+            bootstrap_expect = 1
+          }
+
+          client {
+            enabled       = true
+            network_speed = 10
+          }
+
+    - name: Start nomad service
+      service:
+        name: nomad
+        state: started
+        enabled: true
+      tags:
+        - enable
