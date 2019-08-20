@@ -3,11 +3,17 @@
   remote_user: pi
   become: yes
   tasks:
+    - name: Check nomad binary
+      stat:
+        path: /usr/sbin/nomad
+      register: f
+
     - name: Extract nomad
       unarchive:
         src: https://releases.hashicorp.com/nomad/0.9.4/nomad_0.9.4_linux_arm.zip
         dest: /home/pi
         remote_src: yes
+      when: not f.stat.exists
 
     - name: Move nomad binary
       copy:
@@ -15,20 +21,22 @@
         dest: /usr/sbin/nomad
         remote_src: yes
         mode: 0755
+      when: not f.stat.exists
 
     - name: Make service
       copy:
         dest: /etc/systemd/system/nomad.service
         content: |
           [Unit]
-          Description=Nomad
+          Description=Nomad Agent
           Documentation=https://nomadproject.io/docs/
           Wants=network-online.target
           After=network-online.target
+          ConditionFileNotEmpty=/etc/nomad.d/nomad.hcl
 
           [Service]
           ExecReload=/bin/kill -HUP $MAINPID
-          ExecStart=/usr/sbin/nomad agent -config /etc/nomad.hcl
+          ExecStart=/usr/sbin/nomad agent -config=/etc/nomad.d
           KillMode=process
           KillSignal=SIGINT
           LimitNOFILE=65536
@@ -41,10 +49,18 @@
 
           [Install]
           WantedBy=multi-user.target
+      notify:
+        - Reload systemctl
+        - Restart service
+
+    - name: Create nomad.d directory
+      file:
+        path: /etc/nomad.d
+        state: directory
 
     - name: Create nomad config
       copy:
-        dest: /etc/nomad.hcl
+        dest: /etc/nomad.d/nomad.hcl
         content: |
           data_dir = "/var/lib/nomad"
 
@@ -59,11 +75,20 @@
             enabled       = true
             network_speed = 10
           }
+      notify:
+        - Restart service
 
     - name: Start nomad service
       service:
         name: nomad
         state: started
         enabled: true
-      tags:
-        - enable
+
+  handlers:
+    - name: Reload systemctl
+      shell: systemctl daemon-reload
+
+    - name: Restart service
+      service:
+        name: nomad
+        state: restarted
