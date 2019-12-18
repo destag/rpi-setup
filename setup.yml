@@ -19,29 +19,14 @@
           - jq
           - apt-transport-https
           - ca-certificates
-          - curl
           - software-properties-common
-          - exfat-fuse
-          - exfat-utils
-          - telnet
-          - ufw
+          - curl
           - vim
         state: present
+        install_recommends: no
 
     - name: Setup docker
       include_role:
         name: docker
       tags:
         - docker
-
-    - name: Mount external disk
-      include_role:
-        name: disk
-      tags:
-        - disk
-
-    - name: Setup prometheus node_exporter
-      include_role:
-        name: monitorng
-      tags:
-        - monitoring

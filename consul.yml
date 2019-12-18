@@ -1,0 +1,94 @@
+---
+- hosts: all
+  remote_user: pi
+  become: yes
+  tasks:
+    - name: Check consul binary
+      stat:
+        path: /usr/sbin/consul
+      register: f
+
+    - name: Extract consul
+      unarchive:
+        src: https://releases.hashicorp.com/consul/1.5.3/consul_1.5.3_linux_arm.zip
+        dest: /home/pi
+        remote_src: yes
+      when: not f.stat.exists
+
+    - name: Move consul binary
+      copy:
+        src: /home/pi/consul
+        dest: /usr/sbin/consul
+        remote_src: yes
+        mode: 0755
+      when: not f.stat.exists
+
+    - name: Make service
+      copy:
+        dest: /etc/systemd/system/consul.service
+        content: |
+          [Unit]
+          Description=Consul Agent
+          Documentation=https://consul.io/
+          Wants=network-online.target
+          After=network-online.target
+          ConditionFileNotEmpty=/etc/consul.d/consul.hcl
+
+          [Service]
+          ExecReload=/usr/sbin/consul reload
+          ExecStart=/usr/sbin/consul agent -config-dir=/etc/consul.d
+          KillMode=process
+          KillSignal=SIGINT
+          LimitNOFILE=65536
+          LimitNPROC=infinity
+          Restart=on-failure
+          RestartSec=2
+          StartLimitBurst=3
+          StartLimitInterval=10
+          TasksMax=infinity
+
+          [Install]
+          WantedBy=multi-user.target
+      notify:
+        - Reload systemctl
+        - Restart service
+
+    - name: Create consul.d directory
+      file:
+        path: /etc/consul.d
+        state: directory
+
+    - name: Create consul config
+      copy:
+        dest: /etc/consul.d/consul.hcl
+        content: |
+          datacenter = "dc1"
+
+          data_dir = "/var/lib/consul"
+
+          bind_addr = {% raw %}"{{GetInterfaceIP \"wlan0\"}}"{% endraw %}
+
+          client_addr = "0.0.0.0"
+
+          server = true
+
+          bootstrap_expect = 1
+
+          ui = true
+      notify:
+        - Restart service
+
+    - name: Start consul service
+      service:
+        name: consul
+        state: started
+        enabled: true
+
+  handlers:
+    - name: Reload systemctl
+      shell: systemctl daemon-reload
+
+    - name: Restart service
+      service:
+        name: consul
+        state: restarted

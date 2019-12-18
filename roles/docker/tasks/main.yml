@@ -18,6 +18,7 @@
       - containerd.io
     update_cache: yes
     state: present
+    install_recommends: no
 
 - name: Add user to group docker
   user:
